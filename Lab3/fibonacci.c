@@ -15,7 +15,26 @@
  */
 
 /* Write your solution here */
+void fib(int **sequence, int count){
 
+    int first = 0;
+    int second = 1;
+    int next = 0;
+    int c;
+
+    for (c = 0; c < count; c++) {
+        if (c <= 1) {
+            next = c;
+        }
+        else {
+            next = first + second;
+            first = second;
+            second = next;
+        }
+        (*(sequence))[c] = next;
+        
+    }
+}
 
 int main(int argc, char **argv) {
     /* do not change this main function */
