@@ -12,3 +12,16 @@
 
   Your main function should return 0, regardless of what is printed.
 */
+
+int main(int argc, char **argv) {
+    if (argc != 3) {
+        printf("Invalid\n");
+    } else {
+        if ((strcmp(argv[2], argv[1])) == 0) {
+            printf("Same\n");
+        } else {
+            printf("Different\n");
+        }
+    }
+    return 0;
+}
