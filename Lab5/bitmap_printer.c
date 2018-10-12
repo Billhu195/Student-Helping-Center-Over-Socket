@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
     // Clean up: you need to do this!
     int error = 0;
     error = fclose(image);
-    if (error != 1)
+    if (error != 0)
     {
         fprintf(stderr, "Error: could not close file");
         return 1;
