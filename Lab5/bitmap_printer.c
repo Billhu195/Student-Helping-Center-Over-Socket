@@ -38,6 +38,19 @@ int main(int argc, char **argv) {
     }
 
     // Clean up: you need to do this!
+    int error = 0;
+    error = fclose(image);
+    if (error != 1)
+    {
+        fprintf(stderr, "Error: could not close file");
+        return 1;
+    }
+    int i = 0;
+    for (i = 0; i < height; i++)
+    {
+        free(pixels[i]);
+    }
+    free(pixels);
 
     return 0;
 }
