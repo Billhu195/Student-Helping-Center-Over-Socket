@@ -27,6 +27,12 @@ Ta *find_ta(Ta *ta_list, char *ta_name) {
  *  or NULL if there is no course in the list with this code.
  */
 Course *find_course(Course *courses, int num_courses, char *course_code) {
+    int i = 0;
+    for (i = 0; i < num_courses; i++) {
+        if (strcmp(courses[i].code, course_code) == 0) {
+            return &courses[i];
+        }
+    }
     return NULL;
 }
     
@@ -197,20 +203,26 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
 
     // TODO: students will complete these next pieces but not all of this 
     //       function since we want to provide the formatting
-       
+    Course *found;
+
+    found = find_course(courses, num_courses, course_code);
+    if (found == NULL) {
+        return 1;
+    }
+//     printf("%s", found);
 
     
     // You MUST not change the following statements or your code 
     //  will fail the testing. 
-/*
+
     printf("%s:%s \n", found->code, found->description);
-    printf("\t%d: waiting\n", students_waiting);
-    printf("\t%d: being helped currently\n", students_being_helped);
+//    printf("\t%d: waiting\n", students_waiting);
+//    printf("\t%d: being helped currently\n", students_being_helped);
     printf("\t%d: already helped\n", found->helped);
     printf("\t%d: gave_up\n", found->bailed);
     printf("\t%f: total time waiting\n", found->wait_time);
     printf("\t%f: total time helping\n", found->help_time);
-*/
+
     return 0;
 }
 
@@ -221,6 +233,40 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
  * If the configuration file can not be opened, call perror() and exit.
  */
 int config_course_list(Course **courselist_ptr, char *config_filename) {
-    
-    return 0;
+    FILE *sourse_file;
+    int error = 0;
+    int num_course = 0;
+    char course_name[7];
+    char description[INPUT_BUFFER_SIZE - 7];
+    int numc = 0;
+    char line[INPUT_BUFFER_SIZE];
+
+    sourse_file = fopen(config_filename, "r");
+    if (sourse_file == NULL) {
+        perror("OpenError");
+        exit(1);
+    }
+    if ((fgets(line, INPUT_BUFFER_SIZE, sourse_file)) != NULL) {
+        num_course = strtol(line, NULL, 10);
+        courselist_ptr[num_course] = malloc(sizeof(Course) * num_course);
+
+        while ((fgets(line, INPUT_BUFFER_SIZE, sourse_file)) != NULL) {
+              strncpy(course_name, line, 6);
+              strcpy(description, &line[7]);
+              courselist_ptr[numc] = malloc(sizeof(Course));
+
+//              courselist_ptr[numc]->code = malloc(strlen(course_name) + 1);
+              strcpy(courselist_ptr[numc]->code, course_name);
+
+              courselist_ptr[numc]->description = malloc(strlen(description) + 1);
+              strcpy(courselist_ptr[numc]->description, description);
+              numc++;
+        }
+    }
+
+    error = fclose(sourse_file);
+    if (error != 0) {
+        perror("CloseError");
+    }
+    return num_course;
 }
