@@ -10,6 +10,28 @@
  * or NULL if no student with this name exists in the stu_list
  */
 Student *find_student(Student *stu_list, char *student_name) {
+//    int i = 0;
+//    if (stu_list == NULL) {
+//    
+//    }
+
+//    Student *root = stu_list;
+    Student *current = stu_list;
+    if (strcmp(current->name, student_name) == 0) {
+        return current;
+    }
+    else {
+        current = current->next_overall;
+        while (current->next_overall != NULL) {
+            if (strcmp(current->name, student_name) == 0) {
+                return current;
+            }
+            else {
+                current = current->next_overall;
+            }
+        }
+    }
+
     return NULL;
 }
 
@@ -47,6 +69,8 @@ Course *find_course(Course *courses, int num_courses, char *course_code) {
  */
 int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
     Course *course_array, int num_courses) {
+    
+    
 
     return 0;
 }
