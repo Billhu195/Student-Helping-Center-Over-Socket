@@ -358,6 +358,7 @@ int take_next_overall(char *ta_name, Ta *ta_list, Student **stu_list_ptr) {
         free((found_ta->current_student)->arrival_time);
         //free next_overall and next_course ?
         free(found_ta->current_student);
+        found_ta->current_student = NULL;
     }
 
     Student *stu_next = *stu_list_ptr;
@@ -417,7 +418,7 @@ int take_next_course(char *ta_name, Ta *ta_list, Student **stu_list_ptr, char *c
         free((found_ta->current_student)->name);
         free((found_ta->current_student)->arrival_time);
         // free next_overall and next_course ?
-//        free(found_ta->current_student);
+        free(found_ta->current_student);
         found_ta->current_student = NULL;
     }
 
