@@ -413,11 +413,12 @@ int take_next_course(char *ta_name, Ta *ta_list, Student **stu_list_ptr, char *c
     if (curr_stu != NULL) {
         Course *course = curr_stu->course;
         course->helped = course->helped + 1;
-        course->help_time = time(0) - *(curr_stu->arrival_time) + (course->help_time);
+        course->help_time = time(0) - (*(curr_stu->arrival_time)) + (course->help_time);
         free((found_ta->current_student)->name);
         free((found_ta->current_student)->arrival_time);
         // free next_overall and next_course ?
-        free(found_ta->current_student);
+//        free(found_ta->current_student);
+        found_ta->current_student = NULL;
     }
 
     Course *found_course = find_course(courses, num_courses, course_code);
