@@ -10,12 +10,10 @@
  * or NULL if no student with this name exists in the stu_list
  */
 Student *find_student(Student *stu_list, char *student_name) {
-//    int i = 0;
-//    if (stu_list == NULL) {
-//    
-//    }
-
-//    Student *root = stu_list;
+    if (stu_list == NULL) {
+        return NULL;
+    }
+    
     Student *current = stu_list;
     if (strcmp(current->name, student_name) == 0) {
         return current;
@@ -51,8 +49,8 @@ Ta *find_ta(Ta *ta_list, char *ta_name) {
 Course *find_course(Course *courses, int num_courses, char *course_code) {
     int i = 0;
     for (i = 0; i < num_courses; i++) {
-        if (strcmp(courses[i].code, course_code) == 0) {
-            return &courses[i];
+        if (strcmp(courses[i * sizeof(Course)].code, course_code) == 0) {
+            return &courses[i * sizeof(Course)];
         }
     }
     return NULL;
@@ -70,7 +68,26 @@ Course *find_course(Course *courses, int num_courses, char *course_code) {
 int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
     Course *course_array, int num_courses) {
     
-    
+    Course *found_course = find_course(course_array, num_courses, course_code);
+    if (found_course == NULL) {
+        return 2;
+    }
+
+    Student *found_stu = find_student(*stu_list_ptr, student_name);
+    if (found_stu != NULL) {
+        return 1;
+    }
+
+    Student *new_stu = malloc(sizeof(Student));
+    new_stu->name = malloc(strlen(student_name) + 1);
+    new_stu->arrival_time = malloc(sizeof(time_t));
+    new_stu->course = malloc(sizeof(Course));
+    new_stu->next_overall = malloc(sizeof(Student));
+    new_stu->next_course = malloc(sizeof(Student));
+
+    strcpy(new_stu->name, student_name);
+    *(new_stu->arrival_time) = time(0);
+    new_stu->course = found_course;
 
     return 0;
 }
@@ -264,6 +281,7 @@ int config_course_list(Course **courselist_ptr, char *config_filename) {
     char description[INPUT_BUFFER_SIZE - 7];
     int numc = 0;
     char line[INPUT_BUFFER_SIZE];
+    Course *courselist;
 
     sourse_file = fopen(config_filename, "r");
     if (sourse_file == NULL) {
@@ -272,21 +290,26 @@ int config_course_list(Course **courselist_ptr, char *config_filename) {
     }
     if ((fgets(line, INPUT_BUFFER_SIZE, sourse_file)) != NULL) {
         num_course = strtol(line, NULL, 10);
-        courselist_ptr[num_course] = malloc(sizeof(Course) * num_course);
-
+        courselist = malloc(sizeof(Course) * num_course);
         while ((fgets(line, INPUT_BUFFER_SIZE, sourse_file)) != NULL) {
               strncpy(course_name, line, 6);
               strcpy(description, &line[7]);
-              courselist_ptr[numc] = malloc(sizeof(Course));
+	      description[strlen(description) - 1] = '\0';
 
-//              courselist_ptr[numc]->code = malloc(strlen(course_name) + 1);
-              strcpy(courselist_ptr[numc]->code, course_name);
+              strcpy(courselist[numc * sizeof(Course)].code, course_name);
 
-              courselist_ptr[numc]->description = malloc(strlen(description) + 1);
-              strcpy(courselist_ptr[numc]->description, description);
+              courselist[numc * sizeof(Course)].description = malloc(strlen(description) + 1);
+	      strcpy(courselist[numc * sizeof(Course)].description, description);
+
+	      courselist[numc * sizeof(Course)].helped = 0;
+	      courselist[numc * sizeof(Course)].bailed = 0;
+	      courselist[numc * sizeof(Course)].wait_time = 0.0;
+	      courselist[numc * sizeof(Course)].help_time= 0.0;
+
               numc++;
         }
     }
+    *courselist_ptr = courselist;
 
     error = fclose(sourse_file);
     if (error != 0) {
