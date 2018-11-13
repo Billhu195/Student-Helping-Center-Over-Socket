@@ -12,5 +12,7 @@ int main() {
     char *namefile = "./a3-2018/labs/lab1/filenames";
 
     read_list(listfile, namefile, &head, filenames);
-    display_list(head, filenames);
+    // display_list(head, filenames);
+    FreqRecord *frp = get_word("sort", head, filenames);
+    print_freq_records(frp);
 }
