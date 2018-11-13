@@ -78,11 +78,22 @@ void print_freq_records(FreqRecord *frp) {
 */
 void run_worker(char *dirname, int in, int out) {
 
-    char *listfile = "index";
-    char *namefile = "filenames";
+    // char *dir = dirname;
+    char listfile1[PATHLENGTH] = {'.', '/'};
+    char *listfile = listfile1;
+    listfile = strcat(listfile, dirname);
+    listfile = strcat(listfile, "/index");
+    // printf("%s\n", listfile);
+    char namefile1[PATHLENGTH] = {'.', '/'};
+    char *namefile = namefile1;
+    namefile = strcat(namefile, dirname);
+    namefile = strcat(namefile, "/filenames");
+    // printf("%s\n", namefile);
     Node *head;
-    char **filenames = malloc(sizeof(char) * 10 * MAXFILES); //不知道file_name的长度
+    char **filenames = init_filenames();
     read_list(listfile, namefile, &head, filenames);
+    // printf("read list work\n");
+    // display_list(head, filenames);
 
     int n;
     char word[MAXWORD];
@@ -91,91 +102,30 @@ void run_worker(char *dirname, int in, int out) {
             perror("run worker read");
             exit(1);
         } else {
-            Node *cur = head;
-            while (cur != NULL) {
-                if (strcmp(cur->word, word) == 0) {
-                    char *name = strrstr("/", dirname);
-                    char *fname = {'\0'};
-                    strcpy(fname, (&name)[1]);
-                    add_word(head, filenames, word, fname); // 不知道现在的file name ?
-                    free(fname);
+            // printf("read work\n");
+            word[n] = '\0';
+            // printf("%s\n", word);
+            FreqRecord *array_to_write = get_word(word, head, filenames);
+            // printf("get word work\n");
+            // printf("%d    %s\n", array_to_write[0].freq, array_to_write[0].filename);
+            // print_freq_records(array_to_write);
+            while (array_to_write->freq != 0) {
+                if ((write(out, array_to_write, sizeof(FreqRecord))) == -1) {
+                    perror("run worker write");
+                    exit(1);
                 }
-                cur = cur->next;
+                // printf("write work\n");
+                array_to_write = array_to_write + 1;
             }
-        }
-    }
-
-    Node *curr = head;
-    while (curr != NULL) {
-        FreqRecord *array_to_write = get_word(curr->word, head, filenames);
-        // int i = 0;
-        // int m;
-        FreqRecord *cur_freq = array_to_write;
-        while (cur_freq->freq != 0) {
-            if ((write(out, cur_freq, sizeof(FreqRecord))) == -1) {
-                perror("run worker write");
+            FreqRecord *item = malloc(sizeof(FreqRecord));
+            item->freq =  0;
+            strcpy(item->filename, "");
+            if ((write(out, item, sizeof(FreqRecord))) == -1) {
+                perror("run worker final write");
                 exit(1);
-            }
-            cur_freq = cur_freq + 1;
+                }
+            free(item);
+            
         }
     }
-
-    // int o;
-    FreqRecord *item = malloc(sizeof(FreqRecord));
-    item->freq =  0;
-    strcpy(item->filename, "");
-    if ((write(out, item, sizeof(FreqRecord))) == -1) {
-        perror("run worker final write");
-        exit(1);
-    }
-    free(item);
-
-    return;
 }
-
-
-
-
-
-// int main() {
-//     char *word = "spinach";
-//     char *file_names[2] = {"Menu1", "Menu2"};
-
-//     Node *node_0 = malloc(sizeof(Node));
-//     strcpy(node_0->word, "pepper");
-//     memset(node_0->freq, 0, MAXFILES * sizeof(int));
-//     node_0->freq[0] = 0;
-//     node_0->freq[1] = 1;
-
-//     Node *node_1 = malloc(sizeof(Node));
-//     strcpy(node_1->word, "spinach");
-//     memset(node_1->freq, 0, MAXFILES * sizeof(int));
-//     node_1->freq[0] = 2;
-//     node_1->freq[1] = 6;
-
-//     node_0->next = node_1;
-
-//     Node *head = node_0;
-
-//     FreqRecord *result = get_word(word, head, file_names);
-//     FreqRecord *curr = result;
-//     while (curr != NULL && curr->freq != 0) {
-//         printf("%d %s\n", curr->freq, curr->filename);
-//         curr = curr + 1;
-//     }
-
-//     // int length = sizeof(curr->freq) / sizeof(int);
-//     // printf("%d\n", length);
-//     // printf("%d %s\n", curr->freq, curr->filename);
-//     // curr = curr + 1;
-//     // printf("%d %s\n", curr->freq, curr->filename);
-//     // curr = curr + 1;
-//     // printf("%d %s\n", curr->freq, curr->filename);
-//     // curr = curr + 1;
-//     // printf("%d %s\n", curr->freq, curr->filename);
-
-//     // free(node_0->word);
-//     // free(node_1->word);
-//     // free(node_0);
-//     // free(node_1);
-// }
