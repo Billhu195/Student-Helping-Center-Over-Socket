@@ -5,7 +5,7 @@ SRC = freq_list.c punc.c
 HDR = freq_list.h worker.h
 OBJ = freq_list.o punc.o
 
-all : indexer queryone printindex
+all : indexer queryone printindex test1
 
 indexer : indexer.o ${OBJ}
 	gcc ${FLAGS} -o $@ indexer.o ${OBJ}
@@ -16,11 +16,14 @@ printindex : printindex.o ${OBJ}
 queryone : queryone.o worker.o ${OBJ}
 	gcc ${FLAGS} -o $@ queryone.o worker.o ${OBJ}
 
+test1 : test1.o ${OBJ}
+	gcc ${FLAGS} -o $@ test1.o ${OBJ}
+
 # Separately compile each C file
 %.o : %.c ${HDR}
 	gcc ${FLAGS} -c $<
 
 clean :
-	-rm *.o indexer queryone printindex
+	-rm *.o indexer queryone printindex test1
 
 
