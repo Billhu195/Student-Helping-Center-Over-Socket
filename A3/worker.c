@@ -78,22 +78,17 @@ void print_freq_records(FreqRecord *frp) {
 */
 void run_worker(char *dirname, int in, int out) {
 
-    // char *dir = dirname;
     char listfile1[PATHLENGTH] = {'.', '/'};
     char *listfile = listfile1;
     listfile = strcat(listfile, dirname);
     listfile = strcat(listfile, "/index");
-    // printf("%s\n", listfile);
     char namefile1[PATHLENGTH] = {'.', '/'};
     char *namefile = namefile1;
     namefile = strcat(namefile, dirname);
     namefile = strcat(namefile, "/filenames");
-    // printf("%s\n", namefile);
     Node *head;
     char **filenames = init_filenames();
     read_list(listfile, namefile, &head, filenames);
-    // printf("read list work\n");
-    // display_list(head, filenames);
 
     int n;
     char word[MAXWORD];
@@ -102,19 +97,15 @@ void run_worker(char *dirname, int in, int out) {
             perror("run worker read");
             exit(1);
         } else {
-            // printf("read work\n");
             word[n] = '\0';
-            // printf("%s\n", word);
             FreqRecord *array_to_write = get_word(word, head, filenames);
-            // printf("get word work\n");
-            // printf("%d    %s\n", array_to_write[0].freq, array_to_write[0].filename);
-            // print_freq_records(array_to_write);
+            // FreqRecord *array_to_write = array_get;
+
             while (array_to_write->freq != 0) {
                 if ((write(out, array_to_write, sizeof(FreqRecord))) == -1) {
                     perror("run worker write");
                     exit(1);
                 }
-                // printf("write work\n");
                 array_to_write = array_to_write + 1;
             }
             FreqRecord *item = malloc(sizeof(FreqRecord));
@@ -125,7 +116,31 @@ void run_worker(char *dirname, int in, int out) {
                 exit(1);
                 }
             free(item);
-            
+
+            // free the result from get_word
+            // while (array_get->freq != 0) {
+            //     FreqRecord *prev = array_get;
+            //     array_get = array_get + 1;
+            //     free(prev);
+            // }
+            // free(array_get);
+        }
+    }
+}
+
+void sort_array(FreqRecord *master_array, int num) {
+    for (int i = 0; i < num - 1; i++) {
+        for (int j = 0; j < num - 1; j++) {
+            if (master_array[j].freq < master_array[j + 1].freq) {
+                FreqRecord item;
+                item.freq = master_array[j + 1].freq;
+                strcpy(item.filename, master_array[j + 1].filename);
+                master_array[j + 1] = master_array[j];
+                master_array[j].freq = item.freq;
+                strcpy(master_array[j].filename, item.filename);
+            }
+            // print_freq_records(master_array);
+            // printf("haha\n");
         }
     }
 }
