@@ -28,8 +28,6 @@ FreqRecord *get_word(char *word, Node *head, char **file_names) {
             }
 
             FreqRecord *result_a = malloc(sizeof(FreqRecord) * (count + 1));
-            // printf("%d\n\n", count);
-            // printf("%lu\n\n", (sizeof(result_a) / sizeof(FreqRecord)));
             int acc = 0;
             for(int i = 0; i < length; i++) {
                 if(cur->freq[i] != 0) {
@@ -45,7 +43,6 @@ FreqRecord *get_word(char *word, Node *head, char **file_names) {
             item.freq =  0;
             strcpy(item.filename, "");
             result_a[acc] = item;
-            // printf("%lu\n\n", (sizeof(result_a) / sizeof(FreqRecord)));
 
             return result_a;
         }
@@ -75,6 +72,10 @@ void print_freq_records(FreqRecord *frp) {
 }
 
 /* Complete this function for Task 2 including writing a better comment.
+The run_worker function takes as an argument the path to a directory that 
+contains the files (index and filenames) that it will use. It also takes 
+as arguments the file descriptors representing the read end (in) and the 
+write end (out) of the pipe that connects it to the parent.
 */
 void run_worker(char *dirname, int in, int out) {
 
@@ -98,8 +99,8 @@ void run_worker(char *dirname, int in, int out) {
             exit(1);
         } else {
             word[n] = '\0';
-            FreqRecord *array_to_write = get_word(word, head, filenames);
-            // FreqRecord *array_to_write = array_get;
+            FreqRecord *array_get = get_word(word, head, filenames);
+            FreqRecord *array_to_write = array_get;
 
             while (array_to_write->freq != 0) {
                 if ((write(out, array_to_write, sizeof(FreqRecord))) == -1) {
@@ -118,16 +119,12 @@ void run_worker(char *dirname, int in, int out) {
             free(item);
 
             // free the result from get_word
-            // while (array_get->freq != 0) {
-            //     FreqRecord *prev = array_get;
-            //     array_get = array_get + 1;
-            //     free(prev);
-            // }
-            // free(array_get);
+            free(array_get);
         }
     }
 }
 
+// bubble sort
 void sort_array(FreqRecord *master_array, int num) {
     for (int i = 0; i < num - 1; i++) {
         for (int j = 0; j < num - 1; j++) {
@@ -139,8 +136,6 @@ void sort_array(FreqRecord *master_array, int num) {
                 master_array[j].freq = item.freq;
                 strcpy(master_array[j].filename, item.filename);
             }
-            // print_freq_records(master_array);
-            // printf("haha\n");
         }
     }
 }
