@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
         exit(1);
       }
       fprintf(stderr, "%d\n", num);
-      num_reads;
+      num_reads++;
     }
     return 1; // something is wrong if we ever get here!
 }
