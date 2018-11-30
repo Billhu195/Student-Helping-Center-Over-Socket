@@ -60,8 +60,13 @@ int read_from(int client_index, struct sockname *usernames) {
 
     int num_read = read(fd, &buf, BUF_SIZE);
     buf[num_read] = '\0';
-    if (num_read == 0 || write(fd, buf, strlen(buf)) != strlen(buf)) {
+    if (usernames[client_index].username == NULL) {
+        usernames[client_index].username = malloc(BUF_SIZE + 1);
+        strcpy(usernames[client_index].username, buf);
+    } 
+    else if (num_read == 0 || write(fd, buf, strlen(buf)) != strlen(buf)) {
         usernames[client_index].sock_fd = -1;
+        free(usernames[client_index].username);
         return fd;
     }
 
@@ -144,6 +149,7 @@ int main(void) {
                     printf("Client %d disconnected\n", client_closed);
                 } else {
                     printf("Echoing message from client %d\n", usernames[index].sock_fd);
+                    printf("something happened");
                 }
             }
         }
