@@ -9,7 +9,7 @@
 
 
 #ifndef PORT
-  #define PORT 30000
+  #define PORT 50639
 #endif
 #define MAX_BACKLOG 5
 #define MAX_CONNECTIONS 12
@@ -45,8 +45,21 @@ int accept_connection(int fd, struct sockname *usernames) {
         exit(1);
     }
 
+    char buf[BUF_SIZE];
     usernames[user_index].sock_fd = client_fd;
-    usernames[user_index].username = NULL;
+    int user_read = read(client_fd, &buf, BUF_SIZE);
+    if(user_read == -1) {
+        perror("Read name");
+        return -1;
+    }
+    for (int i = 0; i < BUF_SIZE; i++) {
+        if (buf[i] == 0) {
+            buf[i - 1] = '\0';
+        }
+    }
+    usernames[user_index].username = malloc(BUF_SIZE + 1);
+    strcpy(usernames[user_index].username, buf);
+    memset(buf, 0, BUF_SIZE);
     return client_fd;
 }
 
@@ -60,15 +73,26 @@ int read_from(int client_index, struct sockname *usernames) {
 
     int num_read = read(fd, &buf, BUF_SIZE);
     buf[num_read] = '\0';
-    if (usernames[client_index].username == NULL) {
-        usernames[client_index].username = malloc(BUF_SIZE + 1);
-        strcpy(usernames[client_index].username, buf);
-    } 
-    else if (num_read == 0 || write(fd, buf, strlen(buf)) != strlen(buf)) {
-        usernames[client_index].sock_fd = -1;
-        free(usernames[client_index].username);
-        return fd;
+
+    char talker[BUF_SIZE];
+    memset(talker, '\0', BUF_SIZE);
+    strcpy(talker, usernames[client_index].username);
+    strcat(talker, ":\n");
+    char to_write[BUF_SIZE*2]; 
+    memset(to_write, '\0', BUF_SIZE);
+    strcpy(to_write,talker); 
+    strcat(to_write, buf);
+
+    for (int i = 0; i < MAX_CONNECTIONS; i++) {
+        if(usernames[i].sock_fd != -1 && usernames[i].sock_fd != fd) {
+            if (num_read == 0 || write(usernames[i].sock_fd, to_write, strlen(to_write)) != strlen(to_write)) {
+                usernames[client_index].sock_fd = -1;
+                free(usernames[client_index].username);
+                return fd;
+            }
+        }
     }
+    
 
     return 0;
 }
@@ -149,7 +173,6 @@ int main(void) {
                     printf("Client %d disconnected\n", client_closed);
                 } else {
                     printf("Echoing message from client %d\n", usernames[index].sock_fd);
-                    printf("something happened");
                 }
             }
         }

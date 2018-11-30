@@ -8,7 +8,7 @@
 
 
 #ifndef PORT
-  #define PORT 30000
+  #define PORT 50639
 #endif
 #define BUF_SIZE 128
 
@@ -37,26 +37,47 @@ int main(void) {
         exit(1);
     }
 
+    char username[BUF_SIZE + 1];
+    int num_name = read(STDIN_FILENO, username, BUF_SIZE);
+    username[num_name] = '\0';   
+
+    int write_user = write(sock_fd, username, BUF_SIZE);
+    if (write_user < num_name) {
+        perror("name write");
+    }
+
     // Read input from the user, send it to the server, and then accept the
     // echo that returns. Exit when stdin is closed.
     char buf[BUF_SIZE + 1];
+    int max_fd = sock_fd;
+    fd_set all_fds;
+    FD_ZERO(&all_fds);
+    FD_SET(max_fd, &all_fds);
+    FD_SET(STDIN_FILENO, &all_fds);
     while (1) {
-        int num_read = read(STDIN_FILENO, buf, BUF_SIZE);
-        if (num_read == 0) {
-            break;
-        }
-        buf[num_read] = '\0';         
+        fd_set listen_fds = all_fds;
 
-        int num_written = write(sock_fd, buf, num_read);
-        if (num_written != num_read) {
-            perror("client: write");
+        if( select(max_fd+1, &listen_fds, NULL, NULL, NULL) == -1) {
+            perror("select");
             close(sock_fd);
-            exit(1);
+            return -1;
         }
 
-        num_read = read(sock_fd, buf, BUF_SIZE);
-        buf[num_read] = '\0';
-        printf("Received from server: %s", buf);
+        if(FD_ISSET(STDIN_FILENO, &listen_fds))
+        {
+            int bytes_read = read(STDIN_FILENO, buf, BUF_SIZE);
+            buf[bytes_read] = '\0'; 
+            write(sock_fd, buf, bytes_read);
+        }
+
+        if(FD_ISSET(sock_fd, &listen_fds))
+        {
+            int bytes_read = read(sock_fd, buf, BUF_SIZE);
+            buf[bytes_read] = '\0';
+            write(STDOUT_FILENO, buf, bytes_read);
+        }
+
+        
     }
 
     close(sock_fd);
