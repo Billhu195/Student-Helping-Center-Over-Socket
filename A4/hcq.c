@@ -158,6 +158,7 @@ int remove_ta(Ta **ta_list_ptr, char *ta_name) {
     } else if (strcmp(head->name, ta_name) == 0) {
         // TA is at the head so special case
         *ta_list_ptr = head->next;
+        free(head->name);
         free(head);
         return 0;
     } 
@@ -165,9 +166,11 @@ int remove_ta(Ta **ta_list_ptr, char *ta_name) {
         if (strcmp(head->next->name, ta_name) == 0) {
             Ta *tofree = head->next;
             head->next = head->next->next;
+            free(tofree->name);
             free(tofree);
             return 0;
         }
+        head = head->next;
     }
     // if we reach here, the ta_name was not in the list
     return 1;
@@ -221,32 +224,57 @@ int next_overall(char *ta_name, Ta **ta_list_ptr, Student **stu_list_ptr) {
 
 
 // print a message about which TAs are serving which students
-void print_currently_serving(Ta *ta_list) {
-    if (ta_list == NULL) {
-        printf("No TAs are currently working.\n");
-        return;
+char *print_currently_serving(Ta *ta_list) {
+    Ta *cur = ta_list;
+
+    int count = 0;
+    while (cur != NULL) {
+        if (cur->current_student != NULL) {
+            count = count + 20;
+            count = count + strlen(cur->name) + strlen(cur->current_student->name);
+        } else {
+            count = count + 22 + strlen(ta_list->name);
+        }
+        cur = cur->next;
     }
-    while (ta_list != NULL) {
-       if (ta_list->current_student != NULL) {
-           printf("TA: %s is serving %s.\n",
-                ta_list->name,
-                ta_list->current_student->name);
-       } else {
-           printf("TA: %s has no student\r\n", ta_list->name);
-       }
-       ta_list = ta_list->next;
+
+    int offset = 0;
+    cur = ta_list;
+    char *buf = malloc(count);
+    while (cur != NULL) {
+        if (cur->current_student != NULL) {
+            offset += sprintf(buf + offset, "TA: %s is serving %s.\r\n", cur->name, cur->current_student->name);
+        } else {
+            offset += sprintf(buf + offset, "TA: %s has no student\r\n", cur->name);
+        }
+        cur = cur->next;
     }
+    return buf;
+
 }
 
 /*  Print a list of all the students in the queue. This does not
  *    print students currently being served. 
  */ 
-void print_full_queue(Student *stu_list) {
-    printf("Full Queue\n");
-    while (stu_list != NULL) {
-        printf("Student %s:%s\n",stu_list->name, stu_list->course->code);
-        stu_list = stu_list->next_overall;
+char *print_full_queue(Student *stu_list) {
+    Student *cur = stu_list;
+    int count = 15;
+    while (cur != NULL) {
+        count = count + 13;
+        count = count + strlen(cur->name) + strlen(cur->course->code);
+        cur = cur->next_overall;
     }
+
+    int offset = 0;
+    cur = stu_list;
+    char *buf = malloc(count);
+    offset += sprintf(buf, "Full Queue\r\n");
+    while (cur != NULL) {
+        offset += sprintf(buf + offset, "Student %s:%s\r\n",cur->name, cur->course->code);
+        // printf("Student %s:%s\r\n",stu_list->name, stu_list->course->code);
+        cur = cur->next_overall;
+    }
+    return buf;
 }
 
 

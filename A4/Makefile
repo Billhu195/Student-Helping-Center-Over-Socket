@@ -1,13 +1,14 @@
-CFLAGS = -Wall -g
+PORT=50640
+CFLAGS = -Wall -g -std=c99 -DPORT=$(PORT)
+
+hcq_server: hcq.o hcq_server.o
+	gcc $(CFLAGS) -o $@ $^
 
 helpcentre: helpcentre.o hcq.o 
-	gcc $(CFLAGS) -o helpcentre helpcentre.o hcq.o
+	gcc $(CFLAGS) -o $@ $^
 
-helpcentre.o: helpcentre.c hcq.h
-	gcc $(CFLAGS) -c helpcentre.c
-
-hcq.o: hcq.c hcq.h
-	gcc $(CFLAGS) -c hcq.c
-
+%.o: %.c hcq.h
+	gcc $(CFLAGS) -c $<
+	
 clean: 
-	rm helpcentre *.o
+	rm helpcentre *.o hcq_server
