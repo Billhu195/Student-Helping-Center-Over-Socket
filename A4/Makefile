@@ -11,4 +11,4 @@ helpcentre: helpcentre.o hcq.o
 	gcc $(CFLAGS) -c $<
 	
 clean: 
-	rm helpcentre *.o hcq_server
+	rm *.o hcq_server
