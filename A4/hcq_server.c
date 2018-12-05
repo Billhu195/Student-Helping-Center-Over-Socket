@@ -162,6 +162,9 @@ int read_from(int fd, struct sockname *cur_client) {
     int num_read = read(fd, &buf, 32);
     if (num_read == 0) {
         return fd;
+    } else if (num_read == -1) {
+        perror("read");
+        exit(1);
     }
 
     // append a \0
@@ -368,8 +371,7 @@ int main(void) {
                             struct sockname *stu_client = find_stu_client(cur_ta, usernames);
                             FD_CLR(stu_client->sock_fd, &all_fds);
                             client_kicked(stu_client); // helper function to disconnect a student
-                            // close(4);
-                            // FD_CLR(4, &all_fds);
+
                         }
                         // delete the client for typing in a command line which length is greater than 30
                         if (cur_client->state == -1) {
