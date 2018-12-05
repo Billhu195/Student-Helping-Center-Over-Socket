@@ -32,6 +32,7 @@ struct sockname {
     char buf[33];
     int offset;
     char *course;
+    int read_end;
 };
 
 int dprintf(int fd, const char *format, ...);
@@ -56,12 +57,9 @@ void client_disconnect(struct sockname* cur_client) {
     if (cur_client->is_ta == 0) { // cur_client is Student
         if (cur_client->state > 2) {
             give_up_waiting(&stu_list, cur_client->username);
-            // printf("i = %d\r\n", i);
-            // printf("Student give up!!!!!!\r\n");
         }
     } else { // cur_client is Ta
         if (cur_client->state > 0) {
-            // Ta *cur_ta = find_ta(ta_list, cur_ta->username);
             remove_ta(&ta_list, cur_client->username);
         }
     }
@@ -71,7 +69,6 @@ void client_disconnect(struct sockname* cur_client) {
         exit(1);
     }
     cur_client->sock_fd = -1;
-    // printf("Client %d disconnect\r\n", cur_client->sock_fd);
 }
 
 
@@ -83,7 +80,6 @@ void client_kicked(struct sockname* cur_client) {
         exit(1);
     }
     cur_client->sock_fd = -1;
-    // printf("Client %d kicked\r\n", cur_client->sock_fd);
 }
 
 /* Find client in usernames with fd
@@ -106,7 +102,6 @@ struct sockname* find_client(int fd, struct sockname* usernames) {
 struct sockname* find_stu_client(Ta *cur_ta, struct sockname* usernames) {
     struct sockname *head = usernames;
     while((usernames->is_ta != 0) || (strcmp(usernames->username, cur_ta->current_student->name) != 0) || (usernames->sock_fd == -1)) {
-        // printf("Check Next\r\n");
         usernames = usernames->next;
     }
     struct sockname *cur_client = usernames;
@@ -129,16 +124,17 @@ int accept_connection(int fd, struct sockname *usernames) {
         exit(1);
     }
 
-    struct sockname *new_client = malloc(sizeof(struct sockname));
-    new_client->is_ta = -1;
+    struct sockname *new_client = malloc(sizeof(struct sockname)); // creat a new client
+    new_client->is_ta = -1; // set all things to default
     new_client->next = NULL;
     new_client->sock_fd = client_fd;
     new_client->state = 0;
     new_client->username = NULL;
     new_client->offset = 0;
     new_client->course = NULL;
+    new_client->read_end = 0;
 
-
+    // add in linked list
     struct sockname *head = usernames;
     while (usernames->next != NULL ) {
         usernames = usernames->next;
@@ -159,16 +155,18 @@ int accept_connection(int fd, struct sockname *usernames) {
  * Return -1 if command too long.
  * Return -2 if read is not complete.
  */
-int read_from(int fd, struct sockname *usernames) {
+int read_from(int fd, struct sockname *cur_client) {
 
     // read from client
-    char buf[33];
+    char buf[33]; // 30 for max command, 2 for \r\n, 1 for append \0
     int num_read = read(fd, &buf, 32);
     if (num_read == 0) {
         return fd;
     }
-    buf[num_read] = '\0';
-    int offset = usernames->offset;
+
+    // append a \0
+    buf[num_read] = '\0'; 
+    int offset = cur_client->offset;
 
     // command too long
     int index = num_read + offset;
@@ -176,26 +174,25 @@ int read_from(int fd, struct sockname *usernames) {
         return -1;
     }
 
-    // write in client_buf
-    // char *to_write = malloc(33);
-    // strcpy(to_write, buf);
-    offset += sprintf(usernames->buf + usernames->offset, "%s", buf);
-    // free(to_write);
+    // write in cur_client->buf
+    offset += sprintf(cur_client->buf + offset, "%s", buf);
+
     
-    // read is not complete
-    if(usernames->buf[offset - 1] != '\n') {
-        printf("buf = %s*\r\n", buf);
+    if(cur_client->buf[offset - 1] != '\n') { // read is not complete
+        cur_client->read_end = 0;
+        cur_client->offset = offset;
         return -2;
+    } else { // read is complete
+        cur_client->read_end = 1;
+        cur_client->buf[offset - 2] = '\0'; // replace \r to \0
+        cur_client->offset = offset;
     }
 
-    usernames->buf[offset - 2] = '\0'; // replace \r to \0
-    usernames->offset = offset - 2;
     // reach here if read is valid and complete
     return 0;
 }
 
 /* Check state for command line
- * Return the client or NULL if not found.
  */
 void check_state(struct sockname* cur_client, struct sockname* usernames) {
     int state = cur_client->state;
@@ -205,19 +202,19 @@ void check_state(struct sockname* cur_client, struct sockname* usernames) {
         strcpy(cur_client->username, cur_client->buf);
         cur_client->state = 1;
         dprintf(cur_client->sock_fd, "Are you a TA or a Student (Enter T or S)?\r\n");
-        
+
     } else if (state == 1) { // wait for role
-        if (strcmp(cur_client->buf, "S") == 0) {
+        if (strcmp(cur_client->buf, "S") == 0) { // cur_client is a Student
             cur_client->is_ta = 0;
             cur_client->state = 2;
             dprintf(cur_client->sock_fd, "Valid courses: CSC108, CSC148, CSC209\r\nWhich course are you asking about\r\n");
 
-        } else if (strcmp(cur_client->buf, "T") == 0) {
+        } else if (strcmp(cur_client->buf, "T") == 0) { // cur_client is a Ta
             cur_client->is_ta = 1;
             cur_client->state = 3;
             add_ta(&ta_list, cur_client->username);
             dprintf(cur_client->sock_fd, "Valid commands for TA:\r\n\tstats\r\n\tnext\r\n\t(or use Ctrl+C to leave)\r\n");
-        } else {
+        } else { // Invalid Input
             dprintf(cur_client->sock_fd, "Invalid role (enter T or S)\r\n");
         }
 
@@ -227,30 +224,24 @@ void check_state(struct sockname* cur_client, struct sockname* usernames) {
             strcpy(cur_client->course, cur_client->buf);
             cur_client->state = 4;
             add_student(&stu_list, cur_client->username, cur_client->course, courses, num_courses);
-
             dprintf(cur_client->sock_fd, "You have been entered into the queue. While you wait, you can use the command stats to see which TAs are currently serving students.\r\n");
-        } else {
+        
+        } else { // kicked student if it is a invalid course
             cur_client->state = -1;
             dprintf(cur_client->sock_fd, "This is not a valid course. Good-bye.\r\n");
         }
         
 
     } else if (state == 3) { // state for Ta type in command
-        if (strcmp(cur_client->buf, "stats") == 0) { // if Ta type in stats
+        if (strcmp(cur_client->buf, "stats") == 0) { // if Ta type in "stats"
             char *to_print = print_full_queue(stu_list);
             dprintf(cur_client->sock_fd, to_print);
 
-        } else if (strcmp(cur_client->buf, "next") == 0) { // if Ta type in next
+        } else if (strcmp(cur_client->buf, "next") == 0) { // if Ta type in "next"
             next_overall(cur_client->username, &ta_list, &stu_list);
             Ta *cur_ta = find_ta(ta_list, cur_client->username);
             struct sockname *stu_client = find_stu_client(cur_ta, usernames);
-            // printf("the fd of stu_client = %d\r\n", stu_client->sock_fd);
-            // printf("the name of stu_client = %s\r\n", stu_client->username);
-            // printf("the state of stu_client = %d\r\n", stu_client->state);
-            // printf("the course of stu_client = %s\r\n", stu_client->course);
-            // printf("the is_ta of stu_client = %d\r\n", stu_client->is_ta);
             dprintf(stu_client->sock_fd, "Your turn to see the TA.\r\nWe are disconnecting you from the server now. Press Ctrl-C to close nc\r\n");
-            // stu_client->state = -1;
 
         } else { // Invalid command
             dprintf(cur_client->sock_fd, "Incorrect syntax\r\n");
@@ -260,12 +251,14 @@ void check_state(struct sockname* cur_client, struct sockname* usernames) {
         if (strcmp(cur_client->buf, "stats") == 0) {
             char *to_print = print_currently_serving(ta_list);
             dprintf(cur_client->sock_fd, to_print);
-        } else {
+
+        } else { // Incorrect syntax
             dprintf(cur_client->sock_fd, "Incorrect syntax\r\n");
         }
     }
 
-    cur_client->offset = 0; // reset the offset for new command
+    // reset the offset for new command
+    cur_client->offset = 0;
 }
 
 
@@ -281,8 +274,8 @@ int main(void) {
     strcpy(courses[2].code, "CSC209");
     
 
-    struct sockname *usernames = malloc(sizeof(struct sockname));
-    usernames->is_ta = -1;
+    struct sockname *usernames = malloc(sizeof(struct sockname)); //use as the head of linked list to avoid Seg fault
+    usernames->is_ta = -1; // set all things to default
     usernames->next = NULL;
     usernames->sock_fd = -1;
     usernames->state = -2;
@@ -357,38 +350,40 @@ int main(void) {
             struct sockname* cur_client = find_client(fd_index, usernames);
 
             if (FD_ISSET(fd_index, &listen_fds) && cur_client != NULL) {
-                // printf("fd is %d \r\n", cur_client->sock_fd);
                 // Note: never reduces max_fd
                 int client_closed = read_from(fd_index, cur_client);
                 if (client_closed > 0) {
                     FD_CLR(cur_client->sock_fd, &all_fds);
                     client_disconnect(cur_client);
-                    
-                } else if (client_closed == 0) {// read complete
-                    // printf("The msg is: %s\r\n", cur_client->buf);
-                    check_state(cur_client, usernames);
-                    if (cur_client->state == 3 && (strcmp(cur_client->buf, "next") == 0)) {
-                        Ta *cur_ta = find_ta(ta_list, cur_client->username);
-                        struct sockname *stu_client = find_stu_client(cur_ta, usernames);
-                        FD_CLR(stu_client->sock_fd, &all_fds);
-                        client_kicked(stu_client);
-                        // close(4);
-                        // FD_CLR(4, &all_fds);
-                    }
-                    if (cur_client->state == -1) { // client been kicked
-                        FD_CLR(cur_client->sock_fd, &all_fds);
-                        client_disconnect(cur_client);
-                    }
-                    // printf("The name is: %s\r\n", cur_client->username);
-                    // printf("The state is: %d\r\n", cur_client->state);
 
-                } else if (client_closed == -1) {// client is kicked because command too long
+                // read complete
+                } else if (client_closed == 0) {
+                    // check if read_end is 1, which suppose to be 1
+                    if (cur_client->read_end == 1) {
+                        check_state(cur_client, usernames); // helper function to handle state machine
+
+                        // delete the student which takes by Ta
+                        if (cur_client->state == 3 && (strcmp(cur_client->buf, "next") == 0)) {
+                            Ta *cur_ta = find_ta(ta_list, cur_client->username);
+                            struct sockname *stu_client = find_stu_client(cur_ta, usernames);
+                            FD_CLR(stu_client->sock_fd, &all_fds);
+                            client_kicked(stu_client); // helper function to disconnect a student
+                            // close(4);
+                            // FD_CLR(4, &all_fds);
+                        }
+                        // delete the client for typing in a command line which length is greater than 30
+                        if (cur_client->state == -1) {
+                            FD_CLR(cur_client->sock_fd, &all_fds);
+                            client_disconnect(cur_client);// helper function to disconnect
+                        }
+                    }
+
+                // client is kicked because command too long
+                } else if (client_closed == -1) {
                     FD_CLR(cur_client->sock_fd, &all_fds);
-                    // printf("close fd = %d\r\n", cur_client->sock_fd);
                     client_disconnect(cur_client);
 
-                } else if (client_closed == -2) {// read not complete
-                    printf("read is not complete\r\n");
+                // read not complete, do nothing until the read is end
                 }
             }
         }

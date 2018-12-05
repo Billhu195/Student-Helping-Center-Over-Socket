@@ -249,6 +249,9 @@ char *print_currently_serving(Ta *ta_list) {
         }
         cur = cur->next;
     }
+    if (ta_list == NULL) {
+        return NULL;
+    }
     return buf;
 
 }
